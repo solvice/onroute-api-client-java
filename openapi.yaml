@@ -1,0 +1,957 @@
+openapi: 3.0.2
+servers:
+  - url: 'https://api.solvice.io/'
+    description: Production cluster
+  - url: 'https://api-dev.solvice.io/'
+    description: Staging cluster
+info:
+  version: 1.1.3
+  title: OnRoute API
+  x-logo:
+    url: logo.png
+    altText: OnRoute API
+tags:
+  - name: Solvice API
+    description: |
+
+      Welcome to the Solvice API! You can use our API to access Solvice API endpoints, which can get information on your solved jobs, their statuses and of course post new solve jobs.
+
+
+      ## Getting started
+
+      > Test our API in just one command
+
+      ```shell
+      curl https://demo:demo@api.solvice.io/demo/vrp | \
+      curl https://demo:demo@api.solvice.io/v1/solve  \
+           -X POST -H "Content-Type: application/json" -d @-
+      ```
+      >You can copy and paste the above in your terminal for a working example. The example uses a randomly generated VRP problem.
+
+
+
+      The Solvice API is super simple! Basically, it holds one [/solve](#solve-endpoint)  endpoint for sending an asynchronous solve request to for a certain optimization problem and it holds one [/jobs/:job_id/solution](#jobs-endpoint)  endpoint for retrieving the solved job asynchronous. That's it!
+      The only thing you have to manage is the actual payload for the solve request.
+
+
+
+      Common usage of the Solvice API follows this flow:
+
+        1. Post solve request for `x` seconds with HTTP param `?seconds=x`
+        2. Wait `x` seconds
+        3. Fetch status of job
+        4. Fetch solution if `status=SOLVED` in solution endpoint
+        4. Fetch statistics if `!score.feasible ` in statistics endpoint
+
+
+      Alternatively, if you have no idea on how long a job will need to solve: we can help you out. Just don't add the seconds parameter and we will let you know when we have finished.
+      We can let you know, either when polling the status or if you add a webhook.
+  - name: Vehicle routing
+    description: |
+
+      ## Vehicle routing
+      There are different types of problems the Solvice Solver can handle. We differentiate between 3 types:
+      ### VRP
+      Single day Vehicle Routing Problem (VRP).
+      We see examples of VRP every day:
+       - Meal prep companies delivering food from central kitchens to hungry homes
+       - Delivery vans that bring you groceries from local stores
+       - Couriers who deliver packages to your office
+
+      The Vehicle Routing Problem is everywhere, and solving it is critical in helping to facilitate the movement of goods and services from one place to another.
+      As the problem entails not only finding the shortest path between addresses but also the assignment of stops to multiple drivers, optimization techniques and algorithms are most definitely recommended.
+
+      ### PDP
+      Single day Pickup and Delivery Problem (PDP).
+      This model works well for third party logistics but if you are a restaurant delivery service, a parcel courier, or ridesharing platform, you need a way to handle multiple pickup and delivery addresses while taking into account vehicle capacities, driver shift timings and delivery time windows. VRP or TSP solvers can’t help you because they are constrained to a single depot location.
+
+      ### PVRP
+      Multi day (Periodic) Vehicle Routing Problem (PVRP).
+      This model is excellent for planning multiple days or even weeks. Lots of field services require this setup.
+
+
+
+      ## Differences with Google
+      The main challenge in any logistics business is lowering cost per delivery. By trying to minimize the total driving distance of your vehicle fleet, the Solvice Engine PDP API automatically batches pickups and dropoffs at common locations together, increasing the utilization of your fleet and reducing your cost per delivery.
+      Mapbox offers an optimization API that allows you to route pickups and dropoffs but they only support a single driver. The Google Maps Directions API cannot distinguish between pickups and dropoffs, and neither of these services support time-window constraints, capacity constraints, round trips, stop priority, driver breaks, and more.
+
+      Send the addresses of your pickup and delivery orders, along with the locations for all your drivers in your fleet – Solvice will return a JSON response detailing the optimal order in which you should visit those addresses.
+
+      ## Clients
+
+      Easily connect to our APIs with these clients. Currently, we have an automated process that produces clients for these programming languages:
+       - Java
+       - C#
+       - Python
+       - nodejs
+
+
+      Check out our GitHub repo: https://github.com/solvice/solvice-routing-client/
+  - name: Jobs
+    description: 'The Jobs endpoint allows to retrieve information of a posted request, its status, the score or even detailed statistics.'
+  - name: Routing
+    description: |
+      Post a new solve request to the Routing Engine.
+
+      The routing engine can accept different problems:
+       - VRP
+       - PDP
+       - PVRP
+       - TMP
+
+      ## VRP
+      Each problem has its own structure. See request body schema for specific details.
+      The base case is the Vehicle Routing Problem. All other problems expand on it.
+
+      ## PDP
+
+
+
+      A special case of the classical Vehicle Routing Problem is the Pickup and Delivery Problem. Each order has a pickup location and a drop-off location that are mutually dependent. An item can only be dropped off after it has been picked up by the same driver.
+
+      The Solvice solver will find the optimal routes to do all your orders, so it may often occur that you pick up multiple orders before you drop them off. If you specify capacity constraints, it will ensure that your vehicles won't try to carry more than they can hold.
+
+
+      ```
+       {
+           "name": "pickup in Ghent",
+           "location": "Ghent, Centre",
+           "activity": "PICKUP",
+           "duration": 10,
+           "ride": "order0"
+       },
+       {
+           "name": "Delivery in Brussels",
+           "location": "Brussels, Centre",
+           "activity": "DROPOFF",
+           "duration": 10,
+           "ride": "order0"
+       }
+      ```
+
+      First off, but most importantly, you should define that the problem is a PDP, by setting the solver property to "PDP" in the payload.
+
+      Usage of Pickup and Delivery API is mostly identical with the normal Vehicle Routing API, with only one difference: the way we define pickup and delivery orders. If an item has to reach a certain location, you have to pick it up first (i.e. create a pickup order with `"activity" : "pickup"`) and then drop it of in another location (i.e. create a dropoff order with `"activity" : "dropoff"`).
+
+      ## PVRP
+      Another special case of the classical Vehicle Routing Problem is the Periodic VRP. When planning for multiple days, the optimisation gets even more complicated.
+
+      First off, but most importantly, you should define that the problem is a PVRP, by setting the solver property to `"PVRP"` in the payload.
+  - name: Solution
+    description: Retrieve the optimal solution to the problem.
+  - name: FAQ
+    description: |
+
+      ## Examples
+
+      ### Open-ended routes
+      The end-location on a vehicle is optional and can be omitted to generate open-ended routes.
+      If you are generating the routes for the entire day, and you want to make sure that the driver reaches the end location at the end of the shift, you can provide an end-location. If the driver needs to return to a depot, the algorithm can utilize this final leg back to make a few visits along the way.
+      However, if you are only interested in getting all your deliveries done as soon as possible without considering where driver might be at the end of his/her shift, you may opt to leave the route open-ended.
+      On-demand businesses that need real-time routing is another great use-case where you would keep the routes open-ended. As new orders come in dynamically throughout the day, you may call the API with the real-time locations of your drivers and keep re-optimizing throughout the day, without returning home.
+
+
+      ### Capacity constraints
+      When you are delivering larger items, it is imperative that you consider capacity constraints of your vehicles. Otherwise, the optimized routes may assign more deliveries to a vehicle than it can handle in reality.
+      To enable capacity constraints, each visit must set the load parameter to a numeric value. Also, each vehicle should have a value for its capacity parameter. The values for these parameters are unit-agnostic, so they can denote whatever unit makes sense for your business operations.
+
+      For example, if you deliver small, medium, and large packages, you can specify each delivery in the smallest common denominator – in this case a small package. A medium package could be the size of 4 small packages, etc. Now you can set the maximum capacity of a vehicle to the total amount of small packages that can fit in a vehicle.
+
+
+      ### Unresolved solutions
+      What to do when we cannot reach a feasible solution?
+
+      There are two main reasons a visit may end up unserved: either it just can't fit (i.e. the problem might have too many constraints to accommodate every visit), or it's an input error (i.e. a visit may be incompatible in with every vehicle in the fleet).
+
+      In the first case, the reason will be returned as cannot be visited within the constraints. It basically means that we just couldn't fit it in. You can typically resolve this by either adding more vehicles, or extending the shift times, or increasing the capacities. It really depends on the situation; you might want to inspect the inputs of the visit that was unserved, and find out why it couldn't fit.
+
+      In the second case, where there is a clear reason why, we can be more helpful. As this is often due to a user input error, we provide special messages to assist the user in quickly identifying the unserved reason:
+
+      #### Reasons
+
+      | Code             | Description                                                                                                                                                          |
+      |------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+      | TYPE_RESTRICTION | A visit may be of a type that none of the vehicles in the fleet can serve. This is often due to a misspelling. Can you make sure the type tags are exactly the same? |
+      | CAPACITY |    A visit may have a load greater than the capacity of any vehicle in the fleet. It simply can't fit anywhere! You might need to buy a bigger truck. Or cut the load in pieces :)                                                                                                         |
+      | TIME_WINDOW | A visit may have a time window constraint that prevents any vehicle from being able to serve it. Note that we also take the duration into account. The overlap between the time window of the visit and the driver shift times (excluding breaks) should be at least as large as the duration – or else it won't fit.                                                                                  |
+security:
+  - basicAuth: []
+paths:
+  '/jobs/{jobId}':
+    get:
+      tags:
+        - Jobs
+      summary: Job
+      operationId: getJob
+      description: 'When posting a new solve request, this job can be checked again under this endpoint. In fact, it should be the entire request posted as-is.'
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          description: The job ID.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: return a job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '404':
+          description: Job not found
+  '/jobs/{jobId}/status':
+    get:
+      tags:
+        - Jobs
+      summary: Status
+      operationId: getJobStatus
+      description: Retrieve a specific job status
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          description: The job ID.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: job status returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '404':
+          description: Job not found
+  '/v1/stats/{jobId}':
+    get:
+      tags:
+        - Jobs
+      summary: Statistics
+      operationId: getStats
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          description: The job ID.
+          schema:
+            type: string
+            format: uuid
+      description: |
+        Returns the information on why a job has been solved the way it's been.
+        Information includes specific unresolved objects. Want to know how it is optimised?
+        This endpoint lets you know what rules have been overruled.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stats'
+        '404':
+          description: Job not found
+  /solve:
+    post:
+      tags:
+        - Routing
+      summary: Solve
+      operationId: solve
+      description: Solves any problem defined underneath. Result is the job id and its status. Fetch the solution afterwards in the Solution endpoint.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          $ref: '#/components/responses/bad'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - $ref: '#/components/schemas/VRP'
+                - $ref: '#/components/schemas/PVRP'
+                - $ref: '#/components/schemas/PDP'
+              discriminator:
+                propertyName: solver
+                mapping:
+                  VRP: '#/components/schemas/VRP'
+                  PVRP: '#/components/schemas/PVRP'
+                  PDP: '#/components/schemas/PDP'
+        description: Problem solve request
+  /evaluate:
+    post:
+      tags:
+        - Routing
+      summary: Evaluate
+      operationId: evaluate
+      description: Evaluates any problem defined underneath. Result is the job id and its status. Fetch the solution immediately in the response.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/VRP'
+                  - $ref: '#/components/schemas/PVRP'
+                  - $ref: '#/components/schemas/PDP'
+        '400':
+          $ref: '#/components/responses/bad'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+                - $ref: '#/components/schemas/VRP'
+                - $ref: '#/components/schemas/PVRP'
+                - $ref: '#/components/schemas/PDP'
+        description: Problem solve request
+  '/jobs/{jobId}/solution':
+    get:
+      tags:
+        - Solution
+      summary: Solution
+      operationId: getSolution
+      description: Returns the actual solution of the routing problem. Only present when the status is `SOLVED`.
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          description: The job ID.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoutingSolution'
+        '401':
+          description: Job not found
+components:
+  schemas:
+    VRP:
+      example:
+        $ref: examples/vrp.json
+      allOf:
+        - $ref: '#/components/schemas/SolveRequest'
+        - type: object
+          required:
+            - locations
+            - orders
+            - fleet
+            - options
+          properties:
+            locations:
+              type: array
+              items:
+                $ref: '#/components/schemas/Location'
+            fleet:
+              type: array
+              items:
+                $ref: '#/components/schemas/Vehicle'
+            orders:
+              type: array
+              items:
+                $ref: '#/components/schemas/Order'
+            options:
+              $ref: '#/components/schemas/options'
+    PDP:
+      example:
+        $ref: examples/pdp.json
+      allOf:
+        - $ref: '#/components/schemas/SolveRequest'
+        - type: object
+          required:
+            - locations
+            - orders
+            - fleet
+            - options
+          properties:
+            locations:
+              type: array
+              items:
+                $ref: '#/components/schemas/Location'
+            fleet:
+              type: array
+              items:
+                $ref: '#/components/schemas/Vehicle'
+            orders:
+              type: array
+              items:
+                $ref: '#/components/schemas/Order'
+            options:
+              $ref: '#/components/schemas/options'
+    PVRP:
+      example:
+        $ref: examples/pvrp.json
+      allOf:
+        - $ref: '#/components/schemas/SolveRequest'
+        - type: object
+          required:
+            - period
+            - locations
+            - orders
+            - fleet
+            - options
+          properties:
+            period:
+              type: object
+              description: Define the planning period.
+              properties:
+                start:
+                  type: string
+                  format: date
+                  example: '2017-01-01'
+                  description: Start date of the planning period.
+                end:
+                  type: string
+                  format: date
+                  example: '2017-01-31'
+                  description: End date of the planning period. Not inclusive.
+            locations:
+              type: array
+              items:
+                $ref: '#/components/schemas/Location'
+            fleet:
+              type: array
+              items:
+                $ref: '#/components/schemas/Vehicle'
+            orders:
+              type: array
+              items:
+                $ref: '#/components/schemas/Order'
+            options:
+              $ref: '#/components/schemas/options'
+    options:
+      type: object
+      description: Options block to tweak the Routing Engine.
+      properties:
+        profile:
+          type: string
+          description: All vehicles are either CAR or TRUCK.
+          enum:
+            - CAR
+            - TRUCK
+        allow_overtime:
+          type: boolean
+          description: |
+            If the `shiftend` should be a soft condition to take into account. When `allow_overtime: true` then some orders will be planned after `shiftend`.
+        overconstrained:
+          type: boolean
+          description: |
+            If you do not need to assign every order to a vehicle, then set `overconstrained: true`.
+        minimize_vehicle_use:
+          type: boolean
+          description: Minimise the vehicle useage or minimise total travel time. Two different objective functions.
+        traffic:
+          type: integer
+          description: Modifier for traffic.
+        polylines:
+          type: boolean
+          description: Let our map server calculate the actual polylines for connecting the visits. Processing will take longer.
+        timeUnit:
+          type: string
+          enum:
+            - MINUTES
+            - SECONDS
+          description: Calculate in minutes or seconds. Minutes is advised.
+          default: MINUTES
+        force_type_constraints:
+          type: boolean
+          description: 'If yes, then the type constraints violations are not allowed. Only do this when you are sure about type definitions.'
+    TMP:
+      allOf:
+        - $ref: '#/components/schemas/SolveRequest'
+        - type: object
+          required:
+            - sales
+            - stores
+          properties:
+            sales:
+              type: array
+              items:
+                $ref: '#/components/schemas/Sales'
+            stores:
+              type: array
+              items:
+                $ref: '#/components/schemas/Store'
+    Location:
+      type: object
+      required:
+        - name
+        - latitude
+        - longitude
+      properties:
+        name:
+          type: string
+          description: Address (unique)
+          example: 'Ghent, Belgium'
+        latitude:
+          type: number
+          format: double
+          example: 51.0543
+        longitude:
+          type: number
+          format: double
+          example: 3.7174
+    Vehicle:
+      type: object
+      description: |
+        Resource definition of a vehicle. Orders can be assigned in sequence to vehicles.
+      required:
+        - name
+        - startlocation
+      properties:
+        name:
+          type: string
+          example: driver1
+          description: Unique identification of a vehicle via the name.
+        startlocation:
+          type: string
+          example: locatie1
+          description: Start address of the vehicle
+        endlocation:
+          type: string
+          example: locatie1
+          description: End address of the vehicle. The optimisation takes into account the travel back to this location.
+        capacity:
+          type: integer
+          example: 30
+          description: 'Load capacity of the vehicle. For example, 30 tons is the digit 30.'
+        capacity2:
+          type: integer
+          example: 5
+          description: 'Load capacity of the vehicle (second metric). For example, 400 items.'
+        shiftstart:
+          type: integer
+          minimum: 0
+          maximum: 1439
+          example: 460
+          description: Starting time of the shift of this vehicle.
+        shiftend:
+          type: integer
+          minimum: 0
+          maximum: 1439
+          example: 820
+        type:
+          type: array
+          items:
+            type: string
+        unavailable:
+          type: array
+          items:
+            type: string
+            format: date
+        workingDays:
+          type: array
+          items:
+            type: string
+            example: MONDAY
+        overtime:
+          type: boolean
+          description: Indication if vehicle can go in overtime or not.
+        overtime_end:
+          type: integer
+          minimum: 0
+          maximum: 1439
+          description: Last timeblock of overtime.
+        breaks:
+          type: object
+          description: Break definitions
+          required:
+            - breakstart
+            - breakend
+            - breakduration
+          properties:
+            breakstart:
+              type: integer
+              minimum: 0
+              maximum: 1439
+              description: Earliest starting time of break
+              example: 780
+            breakend:
+              type: integer
+              minimum: 0
+              maximum: 1439
+              description: Earliest ending time of break.
+              example: 860
+            breakduration:
+              type: integer
+              minimum: 0
+              maximum: 1439
+              description: 'Duration of break, should be less than end minus start.'
+              example: 30
+        category:
+          type: string
+          enum:
+            - CAR
+            - BIKE
+            - TRUCK
+    Order:
+      type: object
+      required:
+        - name
+        - location
+      properties:
+        name:
+          type: string
+          example: order1
+          description: Unique name of an order
+        location:
+          type: string
+          example: 'Ghent, Belgium'
+          description: Location of an order; should be in location list.
+        activity:
+          type: string
+          enum:
+            - PICKUP
+            - DROPOFF
+            - EXECUTE
+            - BREAK
+          description: 'Activity type. When defining a PDP problem, be sure to have both a pickup and a delivery activity for the same ride. See ride.'
+          default: PICKUP
+        ride:
+          type: string
+          description: Only applicable for PDP. Use the same ride string for a pickup and a delivery activity.
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 1000
+          description: |
+            Priority allows you to make certain visits a priority over others. In some cases you have more visits than you can serve, resulting in a few unserved. But if you want to make sure your high priority visits take precedence, use this parameter and set it to 100.
+          example: 0
+        duration:
+          type: integer
+          description: Duration of the service in minutes
+          example: 25
+          minimum: 0
+          maximum: 1439
+        demand:
+          type: integer
+          minimum: 0
+          description: Load in cargo for capacity type 1.
+        demand2:
+          type: integer
+          minimum: 0
+          description: Load in cargo for capacity type 2.
+        type:
+          type: array
+          description: Type restriction which can force some orders to be executed by Vehicles with the same type.
+          items:
+            type: string
+            example: Technician
+        windows:
+          description: 'A time window consists of a starttime and an endtime. The order cannot be processed before the starttime and should start being processed before endtime. If the time window is hard, then it should always be fulfilled. E.g. a driver would prefer to drive 3 hours longer than not be on time wrt that time window for that order. So hard time window constraints are pretty extreme!'
+          type: array
+          items:
+            type: object
+            properties:
+              starttime:
+                type: integer
+                minimum: 0
+                maximum: 1439
+                example: 530
+              endtime:
+                type: integer
+                minimum: 0
+                maximum: 1439
+                example: 550
+              hard:
+                type: boolean
+        durationSquash:
+          description: 'When multiple orders are on the same location, the service duration can be lower due to simultaneous handling. The duration will then be this value. is useful when you have many stops at the same location, which could be an apartment complex. Normally, each stop has a duration value of let''s say 10 minutes, which accounts for parking and finding the entrance. If you had 6 stops assigned to a driver at the same time, it doesn''t take an hour in total! Use this parameter to squash the durations of each subsequent delivery at the same address. If you set it to 1, it will squash it to 1 minute, so the total duration for the above 6 stops would be 15 minutes.'
+          type: integer
+          minimum: 0
+          example: 5
+        dateWindows:
+          type: array
+          description: List of start/end date/time combinations.
+          items:
+            type: object
+            properties:
+              starttime:
+                type: integer
+                minimum: 0
+                maximum: 1439
+                example: 530
+              endtime:
+                type: integer
+                minimum: 0
+                maximum: 1439
+                example: 550
+              start:
+                type: string
+                format: date
+                example: '2019-12-11'
+              end:
+                type: string
+                format: date
+                example: '2019-12-15'
+        allowedVehicles:
+          type: array
+          items:
+            type: string
+          description: List of vehicle names that are allowed to be assigned to this order
+        disallowedVehicles:
+          type: array
+          items:
+            type: string
+          description: List of vehicle names that are not allowed to be assigned to this order
+        plannedDate:
+          type: string
+          format: date
+          description: Fixed date on which this order is already planned and should hence be taken into account in the planning.
+        plannedVehicle:
+          type: string
+          description: Name of the vehicle to which this order is already planned and should hence be taken into account in the next planning.
+    Sales:
+      type: object
+      required:
+        - name
+        - home
+      properties:
+        name:
+          type: string
+          example: sales1
+        home:
+          $ref: '#/components/schemas/Location'
+        max_visits:
+          type: integer
+          example: 5
+          description: Maximum number of total visits
+        max_travel:
+          type: integer
+          example: 1000
+          description: Maximum total travel time (in km bird distance)
+        percentage:
+          type: integer
+          example: 100
+          description: Working percentage (parttime)
+        languages:
+          type: array
+          description: Languages
+          items:
+            type: string
+            example: NL
+    Store:
+      type: object
+      required:
+        - name
+        - location
+      properties:
+        name:
+          type: string
+          example: store1
+        location:
+          $ref: '#/components/schemas/Location'
+        frequency:
+          type: integer
+          example: 3
+          description: Visit frequency
+        potential:
+          type: integer
+          example: 5000
+        language:
+          type: string
+          example: NL
+        duration:
+          type: integer
+          example: 15
+    SolveRequest:
+      type: object
+      required:
+        - solver
+      properties:
+        hook:
+          description: Webhook endpoint to receive POST request with the id.
+          type: string
+          format: uri
+          example: 'http://my-backend.com/hook-endpoint'
+        solver:
+          $ref: '#/components/schemas/Solver'
+      discriminator:
+        propertyName: solver
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        solver:
+          $ref: '#/components/schemas/Solver'
+        status:
+          $ref: '#/components/schemas/Status'
+    Stats:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: d290f1ee-6c54-4b01-90e6-d701748f0851
+        goals:
+          type: array
+          description: List of unresolved goals.
+          items:
+            type: object
+            properties:
+              goal:
+                type: string
+                description: Goal name
+              weight:
+                type: integer
+                description: Weight total for goal.
+              conflicts:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    weight:
+                      type: integer
+                      description: Specific weight for unresolved goal reasons.
+                    reasons:
+                      type: array
+                      items:
+                        type: string
+    RoutingSolution:
+      type: object
+      properties:
+        score:
+          description: The score of a solution shows how good this solution is w.r.t all the constraints.
+          type: object
+          properties:
+            hardScore:
+              type: integer
+              description: The score of the constraints that are hard. This should be 0 in order to be feasible.
+            mediumScore:
+              type: integer
+              description: The score of the constraints that are medium.
+            softScore:
+              type: integer
+              description: The score of the constraints that are soft.
+            feasible:
+              type: boolean
+              description: Feasibility check on hard constraints. Check unresolved parameter if you cannot reach feasibility.
+        unresolved:
+          type: array
+          description: The unresolved constraints show the list of constraints that could not achieve feasibility for the current solve.
+          items:
+            type: object
+            properties:
+              name:
+                description: Name of the constraint.
+                type: string
+              value:
+                description: 'Value of the unresolved constraint. The higher, the more deviation from perfection this constraint has.'
+                type: integer
+              level:
+                description: Level of unresolved constraint.
+                type: string
+                enum:
+                  - HARD
+                  - SOFT
+                  - MEDIUM
+        solution:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/Visit'
+    Visit:
+      type: object
+      properties:
+        location:
+          description: Location name.
+          type: string
+          example: 'Ghent, Belgium'
+        order:
+          description: Order name.
+          type: string
+          example: order_233062
+        arrival:
+          description: Arrival at visit
+          type: integer
+          example: 730
+          minimum: 0
+          maximum: 1440
+        finish:
+          type: integer
+          example: 750
+          minimum: 0
+          maximum: 1440
+        drive:
+          type: integer
+          example: 5
+          minimum: 0
+          description: Drive time to next location in minutes.
+        distance:
+          type: integer
+          example: 4294
+          description: Distance to next location in meters.
+        date:
+          type: string
+          format: date
+          description: Date on which this visit is scheduled.
+        activity:
+          type: string
+          description: 'Type of visit (pickup, delivery or execution)'
+        coords:
+          $ref: '#/components/schemas/Location'
+          description: Coordinates in WSG84
+    Solver:
+      type: string
+      description: Required solver enum definition. Please specify.
+      enum:
+        - VRP
+        - PDP
+        - PVRP
+    Status:
+      type: string
+      enum:
+        - ERROR
+        - QUEUED
+        - SOLVING
+        - SOLVED
+      example: SOLVING
+    ApiError:
+      type: array
+      items:
+        type: object
+        properties:
+          status:
+            type: string
+          message:
+            type: string
+    InputError:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              message:
+                type: string
+  responses:
+    bad:
+      description: Bad Request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InputError'
+  examples:
+    vrp:
+      externalValue: ''
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
