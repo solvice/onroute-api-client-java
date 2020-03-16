@@ -789,6 +789,10 @@ components:
           $ref: '#/components/schemas/Solver'
         status:
           $ref: '#/components/schemas/Status'
+        solve_duration:
+          type: integer
+          description: |
+            Duration of the entire solve. This is not the time you will have to wait to receive the solution but the time the solver cluster gives this problem.
     Stats:
       type: object
       properties:

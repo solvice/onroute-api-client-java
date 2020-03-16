@@ -1,33 +1,27 @@
 package io.solvice.onroute.internal;
 
+import io.solvice.ApiException;
 import io.solvice.ApiClient;
-import io.solvice.onroute.RoutingSolution;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClientException;
-import reactor.core.publisher.Mono;
+import io.solvice.Configuration;
+import io.solvice.Pair;
 
+import javax.ws.rs.core.GenericType;
+
+import io.solvice.onroute.RoutingSolution;
+import java.util.UUID;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
-@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2020-03-12T16:58:10.354+01:00[Europe/Brussels]")
 public class SolutionApi {
     private ApiClient apiClient;
 
     public SolutionApi() {
-        this(new ApiClient());
+        this(Configuration.getDefaultApiClient());
     }
 
-    @Autowired
     public SolutionApi(ApiClient apiClient) {
         this.apiClient = apiClient;
     }
@@ -43,38 +37,46 @@ public class SolutionApi {
     /**
      * Solution
      * Returns the actual solution of the routing problem. Only present when the status is &#x60;SOLVED&#x60;.
-     * <p><b>200</b> - OK
-     * <p><b>401</b> - Job not found
-     * @param jobId The job ID.
-     * @return RoutingSolution
-     * @throws RestClientException if an error occurs while attempting to invoke the API
+     * @param jobId The job ID. (required)
+     * @return a {@code RoutingSolution}
+     * @throws ApiException if fails to make API call
      */
-    public Mono<RoutingSolution> getSolution(UUID jobId) throws RestClientException {
-        Object postBody = null;
+    public RoutingSolution getSolution(UUID jobId) throws ApiException {
+        Object localVarPostBody = null;
+
         // verify the required parameter 'jobId' is set
         if (jobId == null) {
-            throw new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Missing the required parameter 'jobId' when calling getSolution");
+            throw new ApiException(400, "Missing the required parameter 'jobId' when calling getSolution");
         }
+
         // create path and map variables
-        final Map<String, Object> pathParams = new HashMap<String, Object>();
+        String localVarPath = "/jobs/{jobId}/solution".replaceAll("\\{format\\}","json")
+                .replaceAll("\\{" + "jobId" + "\\}", apiClient.escapeString(jobId.toString()));
 
-        pathParams.put("jobId", jobId);
+        // query params
+        List<Pair> localVarQueryParams = new ArrayList<Pair>();
+        Map<String, String> localVarHeaderParams = new HashMap<String, String>();
+        Map<String, String> localVarCookieParams = new HashMap<String, String>();
+        Map<String, Object> localVarFormParams = new HashMap<String, Object>();
 
-        final MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<String, String>();
-        final HttpHeaders headerParams = new HttpHeaders();
-        final MultiValueMap<String, String> cookieParams = new LinkedMultiValueMap<String, String>();
-        final MultiValueMap<String, Object> formParams = new LinkedMultiValueMap<String, Object>();
+
+        localVarHeaderParams.put("Content-Type","application/json");
+
+
 
         final String[] localVarAccepts = {
-            "application/json"
+                "application/json"
         };
-        final List<MediaType> localVarAccept = apiClient.selectHeaderAccept(localVarAccepts);
-        final String[] localVarContentTypes = { };
-        final MediaType localVarContentType = apiClient.selectHeaderContentType(localVarContentTypes);
+        final String localVarAccept = apiClient.selectHeaderAccept(localVarAccepts);
+
+        final String[] localVarContentTypes = {
+
+        };
+        final String localVarContentType = apiClient.selectHeaderContentType(localVarContentTypes);
 
         String[] localVarAuthNames = new String[] { "basicAuth" };
 
-        ParameterizedTypeReference<RoutingSolution> localVarReturnType = new ParameterizedTypeReference<RoutingSolution>() {};
-        return apiClient.invokeAPI("/jobs/{jobId}/solution", HttpMethod.GET, pathParams, queryParams, postBody, headerParams, cookieParams, formParams, localVarAccept, localVarContentType, localVarAuthNames, localVarReturnType);
+        GenericType<RoutingSolution> localVarReturnType = new GenericType<RoutingSolution>() {};
+        return apiClient.invokeAPI(localVarPath, "GET", localVarQueryParams, localVarPostBody, localVarHeaderParams, localVarCookieParams, localVarFormParams, localVarAccept, localVarContentType, localVarAuthNames, localVarReturnType);
     }
 }

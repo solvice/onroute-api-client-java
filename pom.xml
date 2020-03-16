@@ -16,11 +16,21 @@
         <jackson-databind-version>2.10.1</jackson-databind-version>
         <jackson-databind-nullable-version>0.2.1</jackson-databind-nullable-version>
         <junit-version>4.13</junit-version>
+        <resteasy-version>3.1.3.Final</resteasy-version>
+
         <reactor-version>3.1.8.RELEASE</reactor-version>
         <reactor-netty-version>0.7.8.RELEASE</reactor-netty-version>
         <openapi-generator-version>4.3.0</openapi-generator-version>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <swagger-annotations-version>1.5.22</swagger-annotations-version>
+        <resteasy-version>3.1.3.Final</resteasy-version>
+        <jackson-version>2.10.3</jackson-version>
+        <jackson-databind-version>2.10.3</jackson-databind-version>
+        <jackson-databind-nullable-version>0.2.1</jackson-databind-nullable-version>
+        <threetenbp-version>2.9.10</threetenbp-version>
+        <maven-plugin-version>1.0.0</maven-plugin-version>
 
     </properties>
     <dependencies>
@@ -43,20 +53,41 @@
             <version>${reactor-version}</version>
         </dependency>
 
-        <!-- HTTP client: Spring RestTemplate -->
+        <!-- HTTP client: jersey-client -->
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webflux</artifactId>
-            <version>${spring-web-version}</version>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-client</artifactId>
+            <version>${resteasy-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-multipart-provider</artifactId>
+            <version>${resteasy-version}</version>
         </dependency>
 
         <dependency>
-            <groupId>io.projectreactor.ipc</groupId>
-            <artifactId>reactor-netty</artifactId>
-            <version>${reactor-netty-version}</version>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.30</version>
         </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
+        </dependency>
+
 
         <!-- JSON processing: jackson -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson-version}</version>
+        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -67,11 +98,26 @@
             <artifactId>jackson-databind-nullable</artifactId>
             <version>${jackson-databind-nullable-version}</version>
         </dependency>
-
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>${jackson-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-jackson2-provider</artifactId>
+            <version>3.1.3.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>${jackson-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.joschi.jackson</groupId>
+            <artifactId>jackson-datatype-threetenbp</artifactId>
+            <version>${threetenbp-version}</version>
         </dependency>
 
         <!-- test dependencies -->
@@ -103,19 +149,22 @@
                         </goals>
                         <configuration>
                             <inputSpec>openapi.yaml</inputSpec>
-                            <language>java</language>
+                            <generatorName>java</generatorName>
                             <generateApis>false</generateApis>
                             <generateModels>true</generateModels>
                             <generateModelDocumentation>true</generateModelDocumentation>
-                            <generateModelTests>true</generateModelTests>
+                            <generateModelTests>false</generateModelTests>
                             <generateSupportingFiles>true</generateSupportingFiles>
-                            <dateLibrary>java8</dateLibrary>
+<!--                            <dateLibrary>java8</dateLibrary>-->
+<!--                            <java8>true</java8>-->
                             <modelPackage>io.solvice.onroute</modelPackage>
+                            <library>resteasy</library>
+
                             <configOptions>
                                 <dateLibrary>java8</dateLibrary>
                                 <sourceFolder>onroute</sourceFolder>
-
-                                <library>webclient</library>
+                                <dateLibrary>java8</dateLibrary>
+                                <java8>true</java8>
                                 <useBeanValidation>true</useBeanValidation>
                             </configOptions>
                             <output>${project.build.directory}/generated-sources</output>
