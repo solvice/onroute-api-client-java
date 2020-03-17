@@ -184,8 +184,8 @@
 
 
     <scm>
-        <connection>scm:git:git@github.com:solvice/onroute-java-client.git</connection>
-        <url>git@github.com:solvice/onroute-java-client.git</url>
+        <connection>scm:git:git@github.com:solvice/onroute-api-client-java.git</connection>
+        <url>git@github.com:solvice/onroute-api-client-java.git</url>
     </scm>
     <developers>
         <developer>
