@@ -22,8 +22,4 @@ public class OnRouteApiImpl extends OnRouteApi {
         log.error("Error solving job {}",job.getId());
     }
 
-    @Override
-    public Job handleNotCompletedException(Throwable ex) {
-        return null;
-    }
 }
