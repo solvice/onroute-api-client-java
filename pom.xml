@@ -183,4 +183,23 @@
     </pluginRepositories>
 
 
+    <scm>
+        <connection>scm:git:git@github.com:solvice/onroute-java-client.git</connection>
+        <url>git@github.com:solvice/onroute-java-client.git</url>
+    </scm>
+    <developers>
+        <developer>
+            <id>truemath</id>
+            <name>Christophe Van Huele</name>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+
+
 </project>
