@@ -6,6 +6,17 @@
     <artifactId>onroute-client</artifactId>
     <version>0.1.4-SNAPSHOT</version>
     <packaging>jar</packaging>
+
+
+    <name>OnRoute API Client</name>
+    <description>Client for executing route optimisation requests.</description>
+    <url>https://github.com/solvice/onroute-java-client</url>
+
+    <organization>
+        <url>https://github.com/solvice</url>
+        <name>Solvice</name>
+    </organization>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <swagger-annotations-version>1.5.22</swagger-annotations-version>
