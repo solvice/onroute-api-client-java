@@ -57,6 +57,15 @@
             <version>${reactor-version}</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.openapitools/openapi-generator-maven-plugin -->
+        <dependency>
+            <groupId>org.openapitools</groupId>
+            <artifactId>openapi-generator-maven-plugin</artifactId>
+            <version>4.3.0</version>
+            <scope>provided</scope>
+        </dependency>
+
+
         <!-- HTTP client: jersey-client -->
         <dependency>
             <groupId>org.jboss.resteasy</groupId>
@@ -174,7 +183,7 @@
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>4.3.0-SNAPSHOT</version>
+                <version>4.3.0</version>
                 <executions>
                     <execution>
                         <goals>
