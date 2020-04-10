@@ -16,8 +16,8 @@ public class OnRouteApiTest {
     @Test
     public void solve() throws InterruptedException, ExecutionException {
         ApiClient client = new ApiClient();
-        client.setUsername("onroute");
-        client.setPassword("onroute");
+        client.setUsername("demo");
+        client.setPassword("demo");
         OnRouteApi api = new OnRouteApiImpl(client);
 
         VRP vrp = new VRP();
