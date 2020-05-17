@@ -1,19 +1,13 @@
 package io.solvice.onroute.internal;
 
-import io.solvice.ApiException;
 import io.solvice.ApiClient;
+import io.solvice.ApiException;
 import io.solvice.Configuration;
 import io.solvice.Pair;
+import io.solvice.onroute.Solution;
 
 import javax.ws.rs.core.GenericType;
-
-import io.solvice.onroute.RoutingSolution;
-import java.util.UUID;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SolutionApi {
     private ApiClient apiClient;
@@ -41,7 +35,7 @@ public class SolutionApi {
      * @return a {@code RoutingSolution}
      * @throws ApiException if fails to make API call
      */
-    public RoutingSolution getSolution(UUID jobId) throws ApiException {
+    public <T extends Solution> T getSolution(UUID jobId, final Class<T> clazz) throws ApiException {
         Object localVarPostBody = null;
 
         // verify the required parameter 'jobId' is set
@@ -76,7 +70,7 @@ public class SolutionApi {
 
         String[] localVarAuthNames = new String[] { "basicAuth" };
 
-        GenericType<RoutingSolution> localVarReturnType = new GenericType<RoutingSolution>() {};
+        GenericType<T> localVarReturnType = new GenericType<T>(clazz) {};
         return apiClient.invokeAPI(localVarPath, "GET", localVarQueryParams, localVarPostBody, localVarHeaderParams, localVarCookieParams, localVarFormParams, localVarAccept, localVarContentType, localVarAuthNames, localVarReturnType);
     }
 }

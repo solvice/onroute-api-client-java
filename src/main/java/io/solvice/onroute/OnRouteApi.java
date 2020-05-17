@@ -15,8 +15,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.*;
 
-
-public abstract class OnRouteApi {
+// example implementation
+public class OnRouteApi {
 
     private final Logger log = LoggerFactory.getLogger(OnRouteApi.class);
 
@@ -52,7 +52,11 @@ public abstract class OnRouteApi {
     }
 
     public RoutingSolution getRoutingSolution(Job job) throws ApiException {
-        return solutionApi.getSolution(job.getId());
+        return solutionApi.getSolution(job.getId(), RoutingSolution.class);
+    }
+
+    public PeriodicRoutingSolution getPeriodicRoutingSolution(Job job) throws ApiException {
+        return solutionApi.getSolution(job.getId(), PeriodicRoutingSolution.class);
     }
 
 
@@ -67,29 +71,30 @@ public abstract class OnRouteApi {
         return solvingFuture;
     }
 
-    public CompletableFuture<RoutingSolution> pollSolved(@NotNull Job job) {
-        CompletableFuture<RoutingSolution> solvedFuture = new CompletableFuture<>();
-        Runnable pollSolved = getPollIfSolved(job, solvedFuture);
+    public CompletableFuture<Solution> pollSolved(@NotNull Job job, final Class clazz) {
+        CompletableFuture<Solution> solvedFuture = new CompletableFuture<>();
+        Runnable pollSolved = () -> {
+            if (job.getStatus() == Status.SOLVED) {
+                try {
+                    Solution solution = solutionApi.getSolution(job.getId(), clazz);
+                    solvedCallback(solution);
+                    solvedFuture.complete(solution);
+                } catch (ApiException e) {
+                    log.error("API error finding status for {} and HTTP status {} and message: {}",
+                            job.getId(),e.getCode(),e.getResponseBody());
+                    solvedFuture.completeExceptionally(e);
+                } catch (Exception e) {
+                    log.error("Error finding status for {} and message: {}", job.getId(),e.getMessage());
+                    solvedFuture.completeExceptionally(e);
+                }
+            }
+        };
         int delay = Optional.ofNullable(job.getSolveDuration()).orElse(5) *1000;
         final ScheduledFuture<?> checkFuture = scheduler.scheduleWithFixedDelay(pollSolved, delay, SOLVED_POLL_PERIOD, TimeUnit.MILLISECONDS);
-        return solvedFuture.whenComplete((result2, thrown2) -> checkFuture.cancel(false))
-                .exceptionally(this::handleNotCompletedSolutionException);
+        return solvedFuture.whenComplete((result2, thrown2) -> checkFuture.cancel(false));
+//                .exceptionally(this::handleNotCompletedSolutionException);
     }
 
-    private Runnable getPollIfSolved(@NotNull Job job, CompletableFuture<RoutingSolution> solvedFuture) {
-        return () -> {
-                if (job.getStatus() == Status.SOLVED) {
-                    try {
-                        RoutingSolution routingSolution = getRoutingSolution(job);
-                        solvedCallback(routingSolution);
-                        solvedFuture.complete(routingSolution);
-                    } catch (ApiException e) {
-                        log.error("Error finding status for {} and HTTP status {} and message: {}",
-                                job.getId(),e.getCode(),e.getResponseBody());
-                    }
-                }
-            };
-    }
 
     /** Until the job starts solving, it is queued.
      * @param job the job that was sent to the solve endpoint
@@ -117,21 +122,9 @@ public abstract class OnRouteApi {
             };
     }
 
-
-    protected abstract void solvedCallback(RoutingSolution routingSolution);
-
-    protected abstract void handleErrorPoll(Job infoJob);
-
-    protected RoutingSolution handleNotCompletedSolutionException(Throwable ex) {
-        return null;
-    }
     protected Job handleNotCompletedJobException(Throwable ex){
         return null;
     }
-
-    private Job ERROR_JOB = new Job().status(Status.ERROR);
-    private RoutingSolution ERROR_SOLUTION = new RoutingSolution();
-
 
     public OnRouteApi solvePollPeriod(int solvePollPeriod) {
         SOLVED_POLL_PERIOD = solvePollPeriod;
@@ -142,5 +135,20 @@ public abstract class OnRouteApi {
         QUEUE_POLL_PERIOD = queuePollPeriod;
         return this;
     }
+
+
+    protected void solvedCallback(Solution routingSolution) {
+        log.info("Solved with score: {}", routingSolution.getScore());
+    }
+
+    protected void handleErrorPoll(Job job) {
+        log.error("Error solving job {}",job.getId());
+    }
+
+    protected Solution handleNotCompletedSolutionException(Throwable ex) {
+        log.error(ex.getMessage());
+        return null;
+    }
+
 
 }

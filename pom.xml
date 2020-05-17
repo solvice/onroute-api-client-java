@@ -192,31 +192,29 @@
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>4.3.0</version>
+                <version>4.3.0-SNAPSHOT</version>
                 <executions>
                     <execution>
                         <goals>
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <inputSpec>openapi.yaml</inputSpec>
+                            <inputSpec>https://docs2.solvice.io/onroute/openapi.json</inputSpec>
                             <generatorName>java</generatorName>
                             <generateApis>false</generateApis>
                             <generateModels>true</generateModels>
                             <generateModelDocumentation>true</generateModelDocumentation>
                             <generateModelTests>false</generateModelTests>
                             <generateSupportingFiles>true</generateSupportingFiles>
-<!--                            <dateLibrary>java8</dateLibrary>-->
-<!--                            <java8>true</java8>-->
                             <modelPackage>io.solvice.onroute</modelPackage>
                             <library>resteasy</library>
-
                             <configOptions>
                                 <dateLibrary>java8</dateLibrary>
                                 <sourceFolder>onroute</sourceFolder>
                                 <dateLibrary>java8</dateLibrary>
                                 <java8>true</java8>
                                 <useBeanValidation>true</useBeanValidation>
+                                <legacyDiscriminatorBehavior>true</legacyDiscriminatorBehavior>
                             </configOptions>
                             <output>${project.build.directory}/generated-sources</output>
                         </configuration>
