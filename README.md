@@ -15,14 +15,16 @@ The Maven snippet for the handcrafted client is:
 ```
 ## Usage
 
+### VRP
 
 Define the clients 
 ```java
 ApiClient client = new ApiClient();
 client.setUsername("<user>");
 client.setPassword("<pw>");
-OnRouteApi api = new OnRouteApiImpl(client);
+OnRouteApi api = new OnRouteApi(client);
 ```
+Or implement you own OnRouteApi through the use of JobsApi, RoutingApi and SolutionApi.
 
 
 Define a solve job to send to the solve endpoint.
@@ -64,3 +66,35 @@ api.pollSolving(job)
             });
         });
 ```
+### PVRP
+
+Define the Periodic VRP and add a planning period.
+
+```java
+PVRP vrp = new PVRP();
+vrp.setSolver(Solver.PVRP);
+vrp.setPeriod(new PVRPAllOfPeriod().start(LocalDate.now()).end(LocalDate.now().plusDays(4)));
+vrp.addLocationsItem(new Location().name("depot").latitude(51.21112).longitude(4.093));
+vrp.addLocationsItem(new Location().name("l1").latitude(50.721112).longitude(4.893));
+vrp.addLocationsItem(new Location().name("l2").latitude(50.42342).longitude(4.693));
+
+vrp.addFleetItem(new Vehicle().name("bert").startlocation("depot").shiftstart(500).shiftend(700));
+vrp.addOrdersItem(new Order().location("l1").duration(10));
+vrp.addOrdersItem(new Order().name("o2").location("l2").duration(15));
+vrp.setOptions(new Options().traffic(1));
+```
+
+```java
+// send to solver
+Job job = api.solve(vrp);
+// job has started solving
+Job startedSolving = null;
+try {
+    startedSolving = api.pollSolving(job).get();
+    // job is solved. return solution
+    PeriodicRoutingSolution solution = api.pollSolved(startedSolving, PeriodicRoutingSolution.class).get();
+} catch (InterruptedException | ExecutionException e) {
+    e.printStackTrace();
+}
+```
+

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -6,8 +7,21 @@
 
     <groupId>io.solvice</groupId>
     <artifactId>onroute-client</artifactId>
-    <version>1.0-SNAPSHOT</version>
+
+    <version>0.1.5-SNAPSHOT</version>
     <packaging>jar</packaging>
+
+
+    <name>OnRoute API Client</name>
+    <description>Client for executing route optimisation requests.</description>
+    <url>https://github.com/solvice/onroute-java-client</url>
+
+    <organization>
+        <url>https://github.com/solvice</url>
+        <name>Solvice</name>
+    </organization>
+
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <swagger-annotations-version>1.5.22</swagger-annotations-version>
@@ -40,6 +54,14 @@
             <version>${swagger-annotations-version}</version>
         </dependency>
 
+
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>28.2-jre</version>
+        </dependency>
+
         <!-- @Nullable annotation -->
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
@@ -52,6 +74,16 @@
             <artifactId>reactor-core</artifactId>
             <version>${reactor-version}</version>
         </dependency>
+
+
+        <!-- https://mvnrepository.com/artifact/org.openapitools/openapi-generator-maven-plugin -->
+        <dependency>
+            <groupId>org.openapitools</groupId>
+            <artifactId>openapi-generator-maven-plugin</artifactId>
+            <version>4.3.0</version>
+            <scope>provided</scope>
+        </dependency>
+
 
         <!-- HTTP client: jersey-client -->
         <dependency>
@@ -136,6 +168,38 @@
     </dependencies>
 
 
+    <profiles>
+        <!-- GPG Signature on release -->
+        <profile>
+            <id>release-sign-artifacts</id>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+
     <build>
         <plugins>
             <plugin>
@@ -148,15 +212,15 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <inputSpec>openapi.yaml</inputSpec>
+
+                            <inputSpec>https://docs2.solvice.io/onroute/openapi.json</inputSpec>
+
                             <generatorName>java</generatorName>
                             <generateApis>false</generateApis>
                             <generateModels>true</generateModels>
                             <generateModelDocumentation>true</generateModelDocumentation>
                             <generateModelTests>false</generateModelTests>
                             <generateSupportingFiles>true</generateSupportingFiles>
-<!--                            <dateLibrary>java8</dateLibrary>-->
-<!--                            <java8>true</java8>-->
                             <modelPackage>io.solvice.onroute</modelPackage>
                             <library>resteasy</library>
 
@@ -173,6 +237,67 @@
                 </executions>
             </plugin>
 
+
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>2.8.2</version>
+                <executions>
+                    <execution>
+                        <id>default-deploy</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>deploy</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.sonatype.plugins</groupId>-->
+<!--                <artifactId>nexus-staging-maven-plugin</artifactId>-->
+<!--                <version>1.6.7</version>-->
+<!--                <extensions>true</extensions>-->
+<!--                <configuration>-->
+<!--                    <serverId>ossrh</serverId>-->
+<!--                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>-->
+<!--                    <autoReleaseAfterClose>true</autoReleaseAfterClose>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5.3</version>
+                <configuration>
+                    <localCheckout>true</localCheckout>
+                    <pushChanges>false</pushChanges>
+                    <mavenExecutorId>forked-path</mavenExecutorId>
+                    <arguments>-Dgpg.passphrase=${gpg.passphrase}</arguments>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.scm</groupId>
+                        <artifactId>maven-scm-provider-gitexe</artifactId>
+                        <version>1.9.4</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+
         </plugins>
     </build>
     <pluginRepositories>
@@ -184,12 +309,16 @@
 
 
     <scm>
-        <connection>scm:git:git@github.com:solvice/onroute-api-client-java.git</connection>
-        <url>git@github.com:solvice/onroute-api-client-java.git</url>
+        <connection>scm:git:git@github.com:solvice/onroute-java-client.git</connection>
+        <developerConnection>scm:git:git@github.com:solvice/onroute-client.git</developerConnection>
+        <url>git@github.com:solvice/onroute-java-client.git</url>
+        <tag>onroute-client-0.1.5</tag>
     </scm>
+
+
     <developers>
         <developer>
-            <id>truemath</id>
+            <id>cvhuele</id>
             <name>Christophe Van Huele</name>
         </developer>
     </developers>
@@ -200,6 +329,22 @@
             <url>http://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
+
+
+
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/
+            </url>
+        </repository>
+    </distributionManagement>
+
 
 
 </project>
