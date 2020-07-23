@@ -2,14 +2,14 @@ package io.solvice.onroute;
 
 
 import io.solvice.ApiClient;
+import io.solvice.ApiException;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.time.LocalDate;
 import java.util.concurrent.ExecutionException;
 
-import static io.solvice.onroute.Status.SOLVED;
-import static io.solvice.onroute.Status.SOLVING;
+import static io.solvice.onroute.Status.*;
 
 
 public class OnRouteApiTest {
@@ -32,19 +32,20 @@ public class OnRouteApiTest {
 
         vrp.addFleetItem(new Vehicle().name("bert").startlocation("depot")
                 .shiftstart(500).shiftend(700)
-                .addUnavailableItem(LocalDate.now())
         );
-        vrp.addOrdersItem(new Order().location("l1").duration(10));
+        vrp.addOrdersItem(new Order().name("o1").location("l1").duration(10));
         vrp.addOrdersItem(new Order().name("o2").location("l2").duration(15));
         vrp.setOptions(new Options().traffic(1));
 
-        // send to solver
-        Job job = api.solve(vrp);
-
-        // job has started solving
-        Job startedSolving = null;
         try {
-            startedSolving = api.pollSolving(job).get();
+
+            // send to solver
+            Job job = api.solve(vrp, 5);
+            Assert.assertNotSame("No error", job.getStatus(), ERROR);
+
+
+            // job has started solving
+            Job startedSolving = api.pollSolving(job).get();
             Assert.assertTrue("Has Started solving",startedSolving.getStatus() == SOLVING || startedSolving.getStatus() == SOLVED);
 
             // job is solved. return solution
@@ -53,7 +54,7 @@ public class OnRouteApiTest {
             Assert.assertTrue("Solution is feasible with score: "+solution.getScore().getSoftScore(),solution.getScore().getFeasible());
             Assert.assertTrue("Solution is present: ",!solution.getSolution().isEmpty());
 
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException | ExecutionException | ApiException e) {
             e.printStackTrace();
         }
     }
@@ -74,16 +75,17 @@ public class OnRouteApiTest {
         vrp.addLocationsItem(new Location().name("l2").latitude(50.42342).longitude(4.693));
 
         vrp.addFleetItem(new Vehicle().name("bert").startlocation("depot").shiftstart(500).shiftend(700));
-        vrp.addOrdersItem(new Order().location("l1").duration(10));
+        vrp.addOrdersItem(new Order().name("01").location("l1").duration(10));
         vrp.addOrdersItem(new Order().name("o2").location("l2").duration(15));
         vrp.setOptions(new Options().traffic(1));
 
-        // send to solver
-        Job job = api.solve(vrp);
-
-        // job has started solving
-        Job startedSolving = null;
         try {
+
+            // send to solver
+            Job job = api.solve(vrp, 5);
+
+            // job has started solving
+            Job startedSolving = null;
             startedSolving = api.pollSolving(job).get();
             Assert.assertTrue("Has Started solving",startedSolving.getStatus() == SOLVING || startedSolving.getStatus() == SOLVED);
 
@@ -93,7 +95,7 @@ public class OnRouteApiTest {
             Assert.assertTrue("Solution is feasible with score: "+solution.getScore().getSoftScore(),solution.getScore().getFeasible());
             Assert.assertTrue("Solution is present: ",!solution.getSolution().isEmpty());
 
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException | ExecutionException | ApiException e) {
             e.printStackTrace();
         }
 

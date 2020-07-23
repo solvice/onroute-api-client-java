@@ -9,12 +9,11 @@ import io.solvice.onroute.internal.SolutionApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.*;
-
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 // example implementation
@@ -42,16 +41,10 @@ public class OnRouteApi {
     }
 
 
-    @Nullable
-    public Job solve(SolveRequest request) {
-        try {
-            Job job = routingApi.solve(request);
-            log.debug("Sent request {} to server {}" , job.getId(), client.getBasePath());
-            return job;
-        } catch (ApiException e) {
-            log.error("Solve error: "+ e.getMessage());
-            return null;
-        }
+    public Job solve(SolveRequest request, Integer seconds) throws ApiException {
+        Job job = routingApi.solve(request,seconds);
+        log.debug("Sent request {} to server {}" , job.getId(), client.getBasePath());
+        return job;
     }
 
     public RoutingSolution getRoutingSolution(Job job) throws ApiException {
@@ -75,10 +68,21 @@ public class OnRouteApi {
     }
 
 
+
     public CompletableFuture<Solution> pollSolved(@NotNull Job job, final Class clazz) {
         CompletableFuture<Solution> solvedFuture = new CompletableFuture<>();
+        AtomicInteger retries = new AtomicInteger(0);
         Runnable pollSolved = () -> {
-            if (job.getStatus() == Status.SOLVED) {
+            retries.getAndIncrement();
+            if(retries.intValue() > NB_RETRIES)  solvedFuture.complete(null);
+
+            Job statusJob = null;
+            try {
+                statusJob = jobsApi.getJobStatus(job.getId().toString());
+            } catch (ApiException e) {
+                e.printStackTrace();
+            }
+            if (statusJob!=null && statusJob.getStatus() == Status.SOLVED) {
                 try {
                     Solution solution = solutionApi.getSolution(job.getId(), clazz);
                     solvedCallback(solution);
@@ -91,6 +95,9 @@ public class OnRouteApi {
                     log.error("Error finding status for {} and message: {}", job.getId(),e.getMessage());
                     solvedFuture.completeExceptionally(e);
                 }
+            }
+            if (job.getStatus() == Status.ERROR) {
+                solvedFuture.complete(null);
             }
         };
         int delay = Optional.ofNullable(job.getSolveDuration()).orElse(5) *1000;

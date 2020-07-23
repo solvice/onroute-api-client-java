@@ -76,10 +76,11 @@ public class RoutingApi {
      * Solve
      * Solves any problem defined underneath. Result is the job id and its status. Fetch the solution afterwards in the Solution endpoint.
      * @param req Problem solve request (optional)
+     * @param seconds
      * @return a {@code Job}
      * @throws ApiException if fails to make API call
      */
-    public Job solve(SolveRequest req) throws ApiException {
+    public Job solve(SolveRequest req, Integer seconds) throws ApiException {
         SolveRequest localVarPostBody = req;
 
         // create path and map variables
@@ -91,7 +92,7 @@ public class RoutingApi {
         Map<String, String> localVarCookieParams = new HashMap<String, String>();
         Map<String, Object> localVarFormParams = new HashMap<String, Object>();
 
-
+        localVarQueryParams.add(new Pair("seconds",String.valueOf(seconds)));
 
 
 
